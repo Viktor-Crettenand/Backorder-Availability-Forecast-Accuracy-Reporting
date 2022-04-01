@@ -68,4 +68,4 @@ The expected behaviour is that the code creates/overwrites the following files: 
 
 ## Authors
 
-This script was created by Viktor Crettenand (viktor.crettenand@bd.com).
+This script was written by Viktor Crettenand (viktor.crettenand@bd.com).
