@@ -60,6 +60,7 @@ def update_backorder_archive(yesterday, today):
     return backorder_archive
 
 def clean(data, hour_minute_second=False):
+    '''Does basic renaming and formating to put the data from the ERP extracts in a nice format'''
     data.rename({'SKU': 'sku', 'DataDate': 'date', 'Qty': 'qty', 'Availability': 'forecasted_availability', 'NetUSD': 'usd_value', 'SuppSitu': 'supp_situ', 'RootCause':'root'}, axis='columns', inplace=True)
     data = data[data['qty']>0 & (~data['qty'].isnull())]
     if hour_minute_second:
@@ -92,8 +93,6 @@ def daily_job(path_today, path_output='output.csv', path_backorder_archive='back
             backorder_archive = pickle.load(f)
     else:
         backorder_archive = path_backorder_archive # this allows to use this function directly with objects instead of with paths to files
-    #print(output)
-    #print(today)
     if today.date[0] < output.first_date_available.sort_values()[-1]:
         print('Todays dates ('+ str(today.date[0]) + ') is earlier than the latest date in the output (' + str(output.first_date_available.sort_values()[-1]) + \
         '). \n If you rerun the program with past days it will change the output in unwanted ways. \n Would you like to continue?''')
@@ -108,7 +107,6 @@ def daily_job(path_today, path_output='output.csv', path_backorder_archive='back
     # replace NaN by string in list in the "forecasts" column. This is done to make the data processing easier in PowerBI
     output.loc[output.first_date_available.isnull(), 'first_date_available'] = today.date[0] # the rows added to output don't yet have a value for 'first_date_available'. This line assigns it.
     absolute_filename = os.path.basename(path_output)
-#    output.to_csv('output.csv')
     output.to_csv(absolute_filename)
     with open('backorder_archive.pkl', 'wb') as f:
         pickle.dump(backorder_archive, f)
@@ -120,7 +118,6 @@ def update_input(path_today, path_input='input.csv'):
     today = clean(pd.read_csv(path_today),True)
     updated_input = pd.concat([input_, today], axis=0)
     absolute_filename = os.path.basename(path_input)
-#    updated_input.to_csv('input.csv')
     updated_input.to_csv(absolute_filename)
     return updated_input
 
@@ -141,8 +138,6 @@ def historical_job(input_path):
     backorder_archive.drop(['qty'], axis=1, inplace=True)
     backorder_archive.rename({'forecasted_availability': 'last_forecast', 'date': 'last_date', 'usd_value': 'max_value', 'SuppSitu': 'supp_situ'}, axis='columns', inplace=True)
     backorder_archive.loc[:, 'supp_situ'] = backorder_archive.supp_situ.apply(lambda x: '_' if (not (( x=='N' ) or (x=='S') or (x=='X'))) else x)
-    #print(output)
-    #print(backorder_archive)
     # --------------------------------This section loops through all days and updates the output-----------------------------
     print('Working on day 1 of ', str(len(dates)))
     for day_number, current_day in enumerate(dates[1:len(dates)]):
@@ -158,7 +153,6 @@ def historical_job(input_path):
     output.sort_values('date_BO_started', inplace=True) # Sorting output by date_BO_initiated
     print('Replacing NaN by string "Not a number nor a numberrrrrr"')
     output.loc[:, 'forecasts'] = output.forecasts.apply(lambda list_: [(element[0], 'Not a number nor a numberrrrrr', element[2], element[3], element[4]) if pd.isnull(element[1]) else element for element in list_])
-    # output.loc[:, 'forecasts'] = output.forecasts.apply(lambda list_: [(element[0], 'Not a number nor a numberrrrrr') if pd.isnull(element[1]) else element for element in list_]) 
     # replace NaN by string in list in the "forecasts" column. This is done to make the data processing easier in PowerBI
     print('Saving files')
     dir_path = os.getcwd() # get working directory path
